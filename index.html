@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c3d5c" />
+    <title>Micro-Savings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app" class="app-root">
+      <div class="web-app" aria-label="Micro-Savings web application">
+        <!-- Onboarding -->
+        <section id="screen-onboarding" class="screen screen--active" aria-hidden="false">
+          <div class="onboarding__inner">
+          <div class="onboarding__art" aria-hidden="true">
+            <svg viewBox="0 0 280 200" class="illustration" role="img">
+              <defs>
+                <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: #1a9d6b; stop-opacity: 0.25" />
+                  <stop offset="100%" style="stop-color: #0c3d5c; stop-opacity: 0.15" />
+                </linearGradient>
+              </defs>
+              <ellipse cx="140" cy="170" rx="100" ry="12" fill="url(#g1)" />
+              <path
+                d="M60 150 L60 90 Q60 70 80 70 L200 70 Q220 70 220 90 L220 150 Z"
+                fill="#fff"
+                stroke="#e2e8f0"
+                stroke-width="2"
+              />
+              <path d="M75 150 L75 100 L105 75 L135 95 L165 65 L195 90 L205 100 L205 150" fill="none" stroke="#1a9d6b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="105" cy="75" r="8" fill="#1a9d6b" />
+              <circle cx="165" cy="65" r="8" fill="#0c3d5c" />
+              <rect x="115" y="115" width="50" height="35" rx="8" fill="#e8f5f0" stroke="#1a9d6b" stroke-width="1.5" />
+              <text x="140" y="137" text-anchor="middle" font-size="14" font-weight="700" fill="#0c3d5c" font-family="system-ui">$</text>
+            </svg>
+          </div>
+          <p class="brand-pill">Micro-Savings</p>
+          <h1 class="onboarding__title">Save smarter. Earn daily.</h1>
+          <p class="onboarding__tagline">Set aside small amounts automatically and watch your balance grow—simply and safely.</p>
+          <div class="onboarding__actions">
+            <button type="button" class="btn btn--google" data-action="login-google">
+              <span class="btn__icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              </span>
+              Continue with Google
+            </button>
+            <button type="button" class="btn btn--secondary" data-action="login-email">Continue with Email</button>
+          </div>
+          <p class="legal-hint">By continuing, you agree to our Terms and Privacy Policy.</p>
+          </div>
+        </section>
+
+        <!-- Main shell (sidebar + content + mobile nav) -->
+        <div id="main-shell" class="main-shell is-hidden" aria-hidden="true">
+          <div class="app-workspace">
+            <aside class="sidebar" aria-label="Main navigation">
+              <a class="sidebar__brand" href="#">Micro-Savings</a>
+              <nav class="sidebar-nav">
+                <button type="button" class="sidebar-nav__btn" data-tab="home">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                  <span>Home</span>
+                </button>
+                <button type="button" class="sidebar-nav__btn" data-tab="wallet">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                  <span>Wallet</span>
+                </button>
+                <button type="button" class="sidebar-nav__btn" data-tab="earnings">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                  <span>Growth</span>
+                </button>
+                <button type="button" class="sidebar-nav__btn" data-tab="history">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                  <span>Activity</span>
+                </button>
+                <button type="button" class="sidebar-nav__btn" data-tab="settings">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+                  <span>Profile</span>
+                </button>
+              </nav>
+            </aside>
+            <div class="app-main-column">
+          <header class="app-header">
+            <button type="button" class="icon-btn app-header__back is-hidden" data-action="nav-back" aria-label="Back">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="app-header__title" id="header-title">Home</span>
+            <button type="button" class="icon-btn" data-action="open-notifications" aria-label="Notifications">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </button>
+          </header>
+
+          <main class="app-main">
+            <div class="content-shell">
+            <!-- Home / Dashboard -->
+            <section id="screen-home" class="screen tab-screen screen--active" data-tab="home" aria-label="Dashboard">
+              <div class="balance-block">
+                <p class="balance-block__label">Total balance</p>
+                <p class="balance-block__amount" id="display-balance">$184,320.00</p>
+                <p class="balance-block__hint">Including savings and growth</p>
+              </div>
+              <div class="action-row">
+                <button type="button" class="btn btn--primary btn--grow" data-action="add-money">+ Add Money</button>
+                <button type="button" class="btn btn--outline btn--grow" data-action="withdraw">Withdraw</button>
+              </div>
+
+              <div class="card card--accent">
+                <div class="card__row">
+                  <div>
+                    <p class="card__eyebrow">Savings goal</p>
+                    <p class="card__title">Buy Laptop</p>
+                  </div>
+                  <span class="badge badge--green">67%</span>
+                </div>
+                <div class="progress-bar" role="progressbar" aria-valuenow="67" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar__fill" style="width: 67%"></div>
+                </div>
+                <p class="card__meta">$200,000 target · $134,000 saved</p>
+              </div>
+
+              <div class="card card--suggestion">
+                <div class="suggestion__icon" aria-hidden="true">✨</div>
+                <div>
+                  <p class="card__eyebrow">Suggestion for you</p>
+                  <p class="suggestion__text">You can save <strong>$5,000</strong> more this week without changing your routine.</p>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card__row">
+                  <div>
+                    <p class="card__eyebrow">Active plan</p>
+                    <p class="card__title">Saving $2,000 weekly</p>
+                  </div>
+                  <button type="button" class="link-btn" data-action="open-plan">Edit</button>
+                </div>
+                <p class="card__meta">Next deduction in 3 days</p>
+              </div>
+
+              <div class="card">
+                <p class="card__eyebrow">Earnings</p>
+                <p class="card__stat">+$1,240.50 <span class="muted">interest this month</span></p>
+              </div>
+
+              <div class="card-grid">
+                <div class="mini-card">
+                  <p class="mini-card__label">Auto-Save</p>
+                  <p class="mini-card__value mini-card__value--on">ON</p>
+                </div>
+                <div class="mini-card">
+                  <p class="mini-card__label">Next save</p>
+                  <p class="mini-card__value">Friday</p>
+                </div>
+              </div>
+
+              <div class="link-stack">
+                <button type="button" class="list-link" data-action="open-plan">
+                  <span>Create or change savings plan</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+                <button type="button" class="list-link" data-action="open-lock">
+                  <span>Lock savings for higher growth</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </div>
+            </section>
+
+            <!-- Create plan -->
+            <section id="screen-plan" class="screen stack-screen" aria-label="Create savings plan">
+              <p class="section-lead">Choose how you want to save. You can pause or change this anytime.</p>
+
+              <label class="field">
+                <span class="field__label">Amount per save</span>
+                <div class="field__input-wrap">
+                  <span class="field__prefix" id="plan-currency">$</span>
+                  <input type="number" class="field__input" id="plan-amount" value="2000" min="100" step="100" inputmode="decimal" />
+                </div>
+                <div class="segmented" role="group" aria-label="Currency">
+                  <button type="button" class="segmented__btn is-active" data-currency="usd">$ USD</button>
+                  <button type="button" class="segmented__btn" data-currency="ngn">₦ NGN</button>
+                </div>
+              </label>
+
+              <fieldset class="field">
+                <legend class="field__label">How often</legend>
+                <div class="chips" role="group">
+                  <button type="button" class="chip is-active" data-freq="daily">Daily</button>
+                  <button type="button" class="chip" data-freq="weekly">Weekly</button>
+                  <button type="button" class="chip" data-freq="monthly">Monthly</button>
+                </div>
+              </fieldset>
+
+              <label class="field">
+                <span class="field__label">Duration</span>
+                <select class="field__select" id="plan-duration">
+                  <option value="3">3 months</option>
+                  <option value="6">6 months</option>
+                  <option value="12" selected>12 months</option>
+                </select>
+              </label>
+
+              <div class="toggle-row">
+                <div>
+                  <p class="toggle-row__title">Keep funds in stable value</p>
+                  <p class="toggle-row__hint">Helps protect against everyday price swings.</p>
+                </div>
+                <button type="button" class="switch" role="switch" aria-checked="true" data-toggle="stablecoin" id="toggle-stablecoin"></button>
+              </div>
+              <div class="toggle-row">
+                <div>
+                  <p class="toggle-row__title">Earn interest</p>
+                  <p class="toggle-row__hint">Grow your balance while you save.</p>
+                </div>
+                <button type="button" class="switch" role="switch" aria-checked="true" data-toggle="interest" id="toggle-interest"></button>
+              </div>
+
+              <button type="button" class="btn btn--primary btn--block btn--bottom" data-action="start-saving">Start Saving</button>
+            </section>
+
+            <!-- Wallet -->
+            <section id="screen-wallet" class="screen tab-screen" data-tab="wallet" aria-label="Wallet">
+              <p class="section-lead">Your balances in one place. Names you know—kept simple.</p>
+              <div class="token-list">
+                <div class="token-row">
+                  <div class="token-row__icon token-row__icon--usdc">$</div>
+                  <div>
+                    <p class="token-row__name">US Dollar Coin</p>
+                    <p class="token-row__sym">USDC</p>
+                  </div>
+                  <p class="token-row__bal">$1,240.08</p>
+                </div>
+                <div class="token-row">
+                  <div class="token-row__icon token-row__icon--eth">Ξ</div>
+                  <div>
+                    <p class="token-row__name">Ethereum</p>
+                    <p class="token-row__sym">ETH</p>
+                  </div>
+                  <p class="token-row__bal">0.042</p>
+                </div>
+                <div class="token-row">
+                  <div class="token-row__icon token-row__icon--btc">₿</div>
+                  <div>
+                    <p class="token-row__name">Bitcoin</p>
+                    <p class="token-row__sym">BTC</p>
+                  </div>
+                  <p class="token-row__bal">0.0081</p>
+                </div>
+              </div>
+              <button type="button" class="btn btn--primary btn--block" data-action="convert-stable">Convert to Stablecoin</button>
+              <div class="action-row action-row--tight">
+                <button type="button" class="btn btn--outline btn--grow" data-action="send-money">Send</button>
+                <button type="button" class="btn btn--outline btn--grow" data-action="receive-money">Receive</button>
+              </div>
+            </section>
+
+            <!-- Earnings -->
+            <section id="screen-earnings" class="screen tab-screen" data-tab="earnings" aria-label="Earnings">
+              <div class="hero-card">
+                <p class="hero-card__kicker">Your money is growing</p>
+                <p class="hero-card__title">You’re on track</p>
+                <p class="hero-card__sub">Steady saving plus growth—without the complicated stuff.</p>
+              </div>
+              <div class="card card--center">
+                <p class="card__eyebrow">Growth rate</p>
+                <p class="apy">8.5% <span class="apy__label">per year</span></p>
+                <p class="card__meta">Rate may change; we’ll always notify you first.</p>
+              </div>
+              <div class="card">
+                <p class="card__eyebrow">Total earned</p>
+                <p class="card__stat card__stat--large">$4,892.10</p>
+                <p class="card__meta">All time from growth on your balance</p>
+              </div>
+              <div class="card">
+                <p class="card__eyebrow">Growth over time</p>
+                <div class="chart" role="img" aria-label="Balance growth over six months">
+                  <svg viewBox="0 0 300 120" class="chart__svg" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#1a9d6b" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="#1a9d6b" stop-opacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0 100 L50 88 L100 75 L150 60 L200 45 L250 35 L300 25 L300 120 L0 120 Z" fill="url(#chartFill)" />
+                    <path d="M0 100 L50 88 L100 75 L150 60 L200 45 L250 35 L300 25" fill="none" stroke="#1a9d6b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <div class="chart__labels">
+                    <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Lock -->
+            <section id="screen-lock" class="screen stack-screen" aria-label="Lock savings">
+              <p class="section-lead">Lock funds for a fixed period to unlock a higher growth rate.</p>
+              <fieldset class="field">
+                <legend class="field__label">Lock duration</legend>
+                <div class="chips chips--lock" role="group">
+                  <button type="button" class="chip chip--lock is-active" data-lock="30">30 days</button>
+                  <button type="button" class="chip chip--lock" data-lock="60">60 days</button>
+                  <button type="button" class="chip chip--lock" data-lock="90">90 days</button>
+                </div>
+              </fieldset>
+              <div class="notice notice--warn">
+                <span class="notice__icon" aria-hidden="true">!</span>
+                <p>During the lock period, these funds can’t be withdrawn early. Your other money stays available as usual.</p>
+              </div>
+              <button type="button" class="btn btn--primary btn--block btn--bottom" data-action="lock-now">Lock Now</button>
+            </section>
+
+            <!-- History -->
+            <section id="screen-history" class="screen tab-screen" data-tab="history" aria-label="Activity">
+              <p class="section-lead">Everything in plain language.</p>
+              <ul class="tx-list">
+                <li class="tx-item">
+                  <span class="tx-item__icon tx-item__icon--save" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  </span>
+                  <div>
+                    <p class="tx-item__title">Saved $2,000</p>
+                    <p class="tx-item__date">Today · Weekly plan</p>
+                  </div>
+                  <span class="tx-item__amt">+$2,000</span>
+                </li>
+                <li class="tx-item">
+                  <span class="tx-item__icon tx-item__icon--earn" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 7l-5-5-5 5"/></svg>
+                  </span>
+                  <div>
+                    <p class="tx-item__title">Growth credited</p>
+                    <p class="tx-item__date">Yesterday</p>
+                  </div>
+                  <span class="tx-item__amt tx-item__amt--pos">+$48.20</span>
+                </li>
+                <li class="tx-item">
+                  <span class="tx-item__icon tx-item__icon--convert" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
+                  </span>
+                  <div>
+                    <p class="tx-item__title">Switched to stable balance</p>
+                    <p class="tx-item__date">Mon · USDC</p>
+                  </div>
+                  <span class="tx-item__amt">$500.00</span>
+                </li>
+                <li class="tx-item">
+                  <span class="tx-item__icon tx-item__icon--out" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  </span>
+                  <div>
+                    <p class="tx-item__title">Withdrawal</p>
+                    <p class="tx-item__date">Last week</p>
+                  </div>
+                  <span class="tx-item__amt tx-item__amt--neg">-$5,000</span>
+                </li>
+              </ul>
+            </section>
+
+            <!-- Settings -->
+            <section id="screen-settings" class="screen tab-screen" data-tab="settings" aria-label="Settings">
+              <div class="profile-card">
+                <div class="profile-card__avatar" aria-hidden="true">A</div>
+                <div>
+                  <p class="profile-card__name">Ada M.</p>
+                  <p class="profile-card__email">ada@email.com</p>
+                </div>
+                <button type="button" class="link-btn" data-action="edit-profile">Edit</button>
+              </div>
+              <div class="settings-group">
+                <div class="toggle-row toggle-row--settings">
+                  <div>
+                    <p class="toggle-row__title">Auto-save</p>
+                    <p class="toggle-row__hint">Automatically move money on schedule</p>
+                  </div>
+                  <button type="button" class="switch" role="switch" aria-checked="true" data-toggle="autosave-settings" id="toggle-autosave"></button>
+                </div>
+                <button type="button" class="settings-row" data-action="notifications">
+                  <span>Notifications</span>
+                  <span class="settings-row__chev">›</span>
+                </button>
+                <button type="button" class="settings-row" data-action="security">
+                  <span>Security</span>
+                  <span class="settings-row__meta">Fingerprint & PIN</span>
+                </button>
+              </div>
+              <p class="settings-foot">We use bank-grade security. You can add fingerprint or face unlock for quick, safe access.</p>
+            </section>
+            </div>
+          </main>
+            </div>
+          </div>
+
+          <nav class="tab-bar" aria-label="Main navigation (mobile)">
+            <button type="button" class="tab-bar__btn is-active" data-tab="home" aria-current="page">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+              <span>Home</span>
+            </button>
+            <button type="button" class="tab-bar__btn" data-tab="wallet">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+              <span>Wallet</span>
+            </button>
+            <button type="button" class="tab-bar__btn" data-tab="earnings">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+              <span>Growth</span>
+            </button>
+            <button type="button" class="tab-bar__btn" data-tab="history">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              <span>Activity</span>
+            </button>
+            <button type="button" class="tab-bar__btn" data-tab="settings">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+              <span>Profile</span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Modal -->
+        <div id="modal-root" class="modal-root is-hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+          <div class="modal-backdrop" data-action="modal-close"></div>
+          <div class="modal-card">
+            <h2 id="modal-title" class="modal-card__title">Confirm</h2>
+            <p id="modal-body" class="modal-card__body"></p>
+            <div class="modal-card__actions">
+              <button type="button" class="btn btn--ghost btn--grow" data-action="modal-cancel">Not now</button>
+              <button type="button" class="btn btn--primary btn--grow" data-action="modal-confirm">Yes, continue</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
+
+        <!-- Full-screen loading overlay -->
+        <div id="loading-overlay" class="loading-overlay is-hidden" aria-busy="true" aria-live="polite">
+          <div class="loading-overlay__box">
+            <div class="spinner" aria-hidden="true"></div>
+            <p id="loading-text" class="loading-overlay__text">One moment…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
