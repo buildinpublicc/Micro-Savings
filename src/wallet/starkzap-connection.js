@@ -1,15 +1,18 @@
 import { getStarkZap } from '../sdk/starkzap-client.js';
+import { connectCartridgeWithSignupOrder } from './cartridge-connect.js';
 
 /** @type {import('starkzap').WalletInterface | null} */
 let activeWallet = null;
 
 /**
  * Connect via Cartridge Controller (social / passkey / email in the Controller UI).
+ * Uses signup order so Google / Discord / password appear before passkeys for new users
+ * (StarkZap’s `connectCartridge` does not pass `signupOptions` through).
  * @param {import('starkzap').ConnectCartridgeOptions} [options]
  */
 export async function connectCartridge(options) {
   const sdk = getStarkZap();
-  const wallet = await sdk.connectCartridge({
+  const wallet = await connectCartridgeWithSignupOrder(sdk, {
     feeMode: 'sponsored',
     ...options,
   });

@@ -120,6 +120,6 @@ Not “a crypto app” — an **automated savings product** where chain, gas, an
 
 ## Next implementation steps (in this repo)
 
-- **Backend:** Node (or your stack) + job runner + DB for plans and ledger-style events.
-- **Client:** **Starkzap** is installed (`starkzap`, `starknet`, `@cartridge/controller`). Shared SDK: `src/sdk/starkzap-client.js` (`getStarkZap()`). Cartridge session: `src/wallet/starkzap-connection.js`. Onboarding calls `connectCartridge()` after the confirm modal. Yield/swap hooks: `src/flows/onchain-savings.js`. RPC/explorer defaults: `src/config/starknet.js`.
+- **Backend:** Scaffold under `backend/` — Express + SQLite (`better-sqlite3`) + `node-cron`. See `backend/README.md`.
+- **Client:** **Starkzap** is installed (`starkzap`, `starknet`, `@cartridge/controller`). Shared SDK: `src/sdk/starkzap-client.js` (`getStarkZap()`). Cartridge session: `src/wallet/starkzap-connection.js`. Onboarding calls `connectCartridge()` after the confirm modal. **Sepolia save → AVNU swap → Vesu deposit:** `src/flows/sepolia-save-swap-deposit.js` (re-exported from `src/flows/onchain-savings.js`); session-bound helper: `runConnectedSaveSwapDeposit(amount)` in `src/flows/sepolia-pipeline.js`. RPC/explorer defaults: `src/config/starknet.js`.
 - Say **“build backend”** or **“show code”** to go deeper on either path.

@@ -1,9 +1,20 @@
 /**
- * On-chain savings pipeline hooks (StarkZap).
- * Maps to `docs/USER_WORKFLOW.md`: swap to stable (AVNU) → yield (Vesu).
- * Extend with real token addresses and market ids from your backend.
+ * On-chain savings hooks (Starkzap on Sepolia).
+ * Full save → swap → deposit: `sepolia-save-swap-deposit.js`.
  */
 import { getActiveWallet } from '../wallet/starkzap-connection.js';
+
+export {
+  assertSpendableBalance,
+  quoteStrkToUsdc,
+  swapStrkToUsdc,
+  depositUsdcToVesu,
+  saveSwapDepositOneTick,
+  pickUsdcSupplyMarket,
+  executeRawCalls,
+} from './sepolia-save-swap-deposit.js';
+
+export { runConnectedSaveSwapDeposit } from './sepolia-pipeline.js';
 
 export function requireConnectedWallet() {
   const w = getActiveWallet();
@@ -13,15 +24,10 @@ export function requireConnectedWallet() {
   return w;
 }
 
-/** Vesu (and other registered providers) via StarkZap `LendingClient`. */
 export function lendingClient() {
   return requireConnectedWallet().lending();
 }
 
-/**
- * AVNU / Ekubo swaps — use `wallet.swap(...)` with the right `SwapInput`
- * (see Starkzap swap docs). This helper only ensures a session exists.
- */
 export function swapContext() {
   return requireConnectedWallet();
 }
