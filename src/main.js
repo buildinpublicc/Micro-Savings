@@ -5,9 +5,13 @@ import {
   readDashboard,
   updateDashboard,
   computeLocalNextRunIso,
+  formatPlanHeadline,
 } from './lib/dashboard-state.js';
+import { appendLocalActivity } from './lib/activity-log.js';
+import { maybeRecordUsdcSnapshot } from './lib/balance-snapshots.js';
 import { readConnectedWalletBalances } from './lib/wallet-balances.js';
 import { refreshHomeDashboard } from './ui/home-dashboard.js';
+import { refreshGrowthTab, refreshActivityTab } from './ui/growth-activity.js';
 
 if (import.meta.env.DEV) {
   import('./sdk/starkzap-client.js').then(({ getStarkZap }) => {
@@ -92,6 +96,15 @@ function getSessionUserId() {
   return readSavedSession()?.userId ?? null;
 }
 
+function formatActivityWhenLine() {
+  return new Date().toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function clearSession() {
   try {
     localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -162,6 +175,8 @@ async function refreshWalletBalances() {
     }
     strkEl.textContent = bal.strk.toFormatted();
     usdcEl.textContent = bal.usdc.toFormatted();
+    const u = parseFloat(bal.usdc.toUnit());
+    if (Number.isFinite(u)) maybeRecordUsdcSnapshot(u);
   } catch {
     strkEl.textContent = '—';
     usdcEl.textContent = '—';
@@ -189,6 +204,8 @@ function showTab(tab) {
 
   if (tab === 'wallet') void refreshWalletBalances();
   if (tab === 'home') void refreshHomeDashboard(getSessionUserId);
+  if (tab === 'earnings') void refreshGrowthTab(getSessionUserId);
+  if (tab === 'history') void refreshActivityTab(getSessionUserId);
 }
 
 function syncPlanFormFromDashboard() {
@@ -554,6 +571,14 @@ document.body.addEventListener('click', async (e) => {
       }));
       closeStack();
       void refreshHomeDashboard(getSessionUserId);
+      appendLocalActivity({
+        icon: 'save',
+        title: 'Savings plan started',
+        subtitle: `${formatActivityWhenLine()} · ${formatPlanHeadline(payload)}`,
+        amountDisplay: `${payload.amount.toLocaleString()} / ${payload.frequency}`,
+        amountVariant: 'neutral',
+      });
+      void refreshActivityTab(getSessionUserId);
       showToast('Plan is live.');
       break;
     }
@@ -612,6 +637,15 @@ document.body.addEventListener('click', async (e) => {
         showToast('Swap confirmed. Updating balances…');
         void refreshWalletBalances();
         void refreshHomeDashboard(getSessionUserId);
+        const h = tx.hash ? `${tx.hash.slice(0, 10)}…` : '';
+        appendLocalActivity({
+          icon: 'convert',
+          title: 'Swapped STRK → USDC',
+          subtitle: h ? `${formatActivityWhenLine()} · ${h}` : formatActivityWhenLine(),
+          amountDisplay: `−${raw} STRK`,
+          amountVariant: 'neutral',
+        });
+        void refreshActivityTab(getSessionUserId);
         if (tx.explorerUrl) {
           window.open(tx.explorerUrl, '_blank', 'noopener,noreferrer');
         }
@@ -673,6 +707,15 @@ document.body.addEventListener('click', async (e) => {
         closeStack();
         void refreshWalletBalances();
         void refreshHomeDashboard(getSessionUserId);
+        const th = tx.hash ? `${tx.hash.slice(0, 10)}…` : '';
+        appendLocalActivity({
+          icon: 'out',
+          title: `Sent ${tokenKey}`,
+          subtitle: th ? `${formatActivityWhenLine()} · ${th}` : formatActivityWhenLine(),
+          amountDisplay: `−${amountStr} ${tokenKey}`,
+          amountVariant: 'neg',
+        });
+        void refreshActivityTab(getSessionUserId);
         if (tx.explorerUrl) {
           window.open(tx.explorerUrl, '_blank', 'noopener,noreferrer');
         }
@@ -706,6 +749,14 @@ document.body.addEventListener('click', async (e) => {
         updateDashboard((d) => ({ ...d, lock: { days, lockedUntil } }));
         closeStack();
         void refreshHomeDashboard(getSessionUserId);
+        appendLocalActivity({
+          icon: 'lock',
+          title: `Savings locked (${days} days)`,
+          subtitle: formatActivityWhenLine(),
+          amountDisplay: '—',
+          amountVariant: 'neutral',
+        });
+        void refreshActivityTab(getSessionUserId);
         showToast(`Locked for ${days} days — we’ll highlight this on Home.`);
       }
       break;

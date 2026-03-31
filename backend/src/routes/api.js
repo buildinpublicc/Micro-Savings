@@ -85,6 +85,26 @@ export function apiRouter(db) {
     res.status(201).json(row);
   });
 
+  /** Ledger rows for all plans owned by the user (newest first). */
+  r.get('/users/:userId/ledger', (req, res) => {
+    const userId = Number(req.params.userId);
+    if (!Number.isInteger(userId)) {
+      res.status(400).json({ error: 'invalid userId' });
+      return;
+    }
+    const rows = db
+      .prepare(
+        `SELECT le.id, le.plan_id, le.kind, le.status, le.payload, le.created_at
+         FROM ledger_events le
+         INNER JOIN savings_plans sp ON sp.id = le.plan_id
+         WHERE sp.user_id = ?
+         ORDER BY datetime(le.created_at) DESC
+         LIMIT 100`,
+      )
+      .all(userId);
+    res.json(rows);
+  });
+
   /** Manual trigger for testing (no auth — add API key in production). */
   r.post('/internal/run-due', (_req, res) => {
     const n = processDuePlans(db);

@@ -7,6 +7,7 @@ import {
   formatUsd,
 } from '../lib/dashboard-state.js';
 import { readConnectedWalletBalances } from '../lib/wallet-balances.js';
+import { maybeRecordUsdcSnapshot } from '../lib/balance-snapshots.js';
 
 /**
  * @param {Record<string, unknown>} row
@@ -50,6 +51,9 @@ export async function refreshHomeDashboard(getUserId) {
   const balances = await readConnectedWalletBalances();
   const usdcUnit = balances ? parseFloat(balances.usdc.toUnit()) : NaN;
   const savedUsd = Number.isFinite(usdcUnit) ? usdcUnit : 0;
+  if (balances && Number.isFinite(usdcUnit)) {
+    maybeRecordUsdcSnapshot(usdcUnit);
+  }
 
   const balEl = document.getElementById('display-balance');
   const hintEl = document.getElementById('home-balance-hint');

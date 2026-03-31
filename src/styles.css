@@ -1170,6 +1170,20 @@ body {
   color: var(--color-accent);
 }
 
+.tx-item--empty {
+  list-style: none;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.growth-chart-note {
+  margin-bottom: 10px;
+}
+
 .tx-item__amt--neg {
   color: #c2410c;
 }

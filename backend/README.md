@@ -21,6 +21,7 @@ npm run dev
 | `GET` | `/api/health` | Liveness |
 | `POST` | `/api/users` | Body `{ "externalRef": "cartridge-user-or-opaque-id" }` — create/find user |
 | `GET` | `/api/users/:userId/plans` | List plans |
+| `GET` | `/api/users/:userId/ledger` | Ledger events for that user’s plans (Activity tab) |
 | `POST` | `/api/users/:userId/plans` | Body matches frontend `SavingsPlanPayload` (`amount`, `frequency`, `duration`, `autoConvert`, `earnYield`) |
 | `POST` | `/api/internal/run-due` | Force-run due saves (no auth — lock down in prod) |
 

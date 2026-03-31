@@ -47,3 +47,13 @@ export async function listPlans(userId) {
   if (!res.ok) throw new Error(`GET plans failed (${res.status})`);
   return res.json();
 }
+
+/**
+ * @param {number} userId
+ * @returns {Promise<Array<Record<string, unknown>>>}
+ */
+export async function fetchLedger(userId) {
+  const res = await fetch(`${API_BASE}/api/users/${userId}/ledger`);
+  if (!res.ok) throw new Error(`GET ledger failed (${res.status})`);
+  return res.json();
+}
