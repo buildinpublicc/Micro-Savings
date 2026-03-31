@@ -416,16 +416,6 @@ async function openSendStackIfConnected() {
 }
 
 function bindPlanScreen() {
-  $$('.segmented__btn').forEach((b) => {
-    b.addEventListener('click', () => {
-      $$('.segmented__btn').forEach((x) => x.classList.remove('is-active'));
-      b.classList.add('is-active');
-      const cur = b.dataset.currency;
-      const prefix = $('#plan-currency');
-      if (prefix) prefix.textContent = cur === 'usd' ? '$' : '₦';
-    });
-  });
-
   $$('.chips .chip:not(.chip--lock)').forEach((c) => {
     c.addEventListener('click', () => {
       c.parentElement?.querySelectorAll('.chip').forEach((x) => {
