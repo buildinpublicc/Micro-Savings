@@ -335,6 +335,39 @@ function hideLoading() {
   loadingOverlay.classList.add('is-hidden');
 }
 
+/**
+ * Show connected wallet address (Cartridge / Starknet Sepolia).
+ * @param {string} title
+ * @param {string} intro
+ */
+async function openWalletAddressModal(title, intro) {
+  const { getActiveWallet } = await import('./wallet/starkzap-connection.js');
+  const w = getActiveWallet();
+  if (!w) {
+    showToast('Sign in with Cartridge to see your Starknet address.');
+    return;
+  }
+  const addr = String(w.address);
+  const ok = await openModal({
+    title,
+    body: `${intro}\n\n${addr}`,
+    confirmText: 'Copy address',
+    cancelText: 'Close',
+  });
+  if (ok) {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(addr);
+        showToast('Address copied to clipboard.');
+        return;
+      } catch {
+        // fall through
+      }
+    }
+    showToast('Select the address in the dialog to copy it.');
+  }
+}
+
 function bindSwitches() {
   $$('.switch').forEach((sw) => {
     sw.addEventListener('click', () => {
@@ -450,30 +483,12 @@ document.body.addEventListener('click', async (e) => {
       break;
     }
 
-    case 'withdraw': {
-      const { getActiveWallet } = await import('./wallet/starkzap-connection.js');
-      const w = getActiveWallet();
-      if (!w) {
-        showToast('Sign in with Cartridge to copy your Starknet address.');
-        break;
-      }
-      const addr = String(w.address);
-      const ok = await openModal({
-        title: 'Send or withdraw',
-        body: `${addr}\n\nUse this address with any Starknet Sepolia wallet, bridge, or exchange that supports withdrawals to your custody.`,
-        confirmText: 'Copy address',
-        cancelText: 'Close',
-      });
-      if (ok && navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(addr);
-          showToast('Address copied to clipboard.');
-        } catch {
-          showToast('Could not copy — select the address in the dialog.');
-        }
-      }
+    case 'withdraw':
+      await openWalletAddressModal(
+        'Send or withdraw',
+        'Use this address with any Starknet Sepolia wallet, bridge, or exchange that sends funds to your custody.',
+      );
       break;
-    }
 
     case 'open-plan':
       openStack('plan');
@@ -602,16 +617,12 @@ document.body.addEventListener('click', async (e) => {
       break;
     }
 
-    case 'receive-money': {
-      const ok = await openModal({
-        title: 'Receive money?',
-        body: 'We’ll show a simple code you can share. No long codes to copy by hand.',
-        confirmText: 'Show my code',
-        cancelText: 'Cancel',
-      });
-      if (ok) showToast('Your receive code is ready to share.');
+    case 'receive-money':
+      await openWalletAddressModal(
+        'Receive on Sepolia',
+        'Share this address so others can send you STRK or USDC on Starknet Sepolia (testnet). Only share if you trust the sender.',
+      );
       break;
-    }
 
     case 'lock-now': {
       const days = $('.chip--lock.is-active')?.dataset.lock ?? '30';
