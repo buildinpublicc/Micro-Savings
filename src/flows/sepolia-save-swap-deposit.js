@@ -4,10 +4,12 @@
  * Building blocks for Micro-Savings. Use after `WalletInterface` is connected (e.g. Cartridge).
  * Tokens: `sepoliaTokens` from Starkzap (AVNU-sourced presets).
  *
+ * Integration notes: `starkzap-skill/SKILL.md` (Address/Amount, preflight, sponsored fees).
+ *
  * @see https://docs.starknet.io/build/starkzap/
  */
 
-import { Amount, sepoliaTokens } from 'starkzap';
+import { Amount, fromAddress, sepoliaTokens } from 'starkzap';
 
 /** Typical slippage: 50 bps = 0.5% */
 const DEFAULT_SLIPPAGE_BPS = 50n;
@@ -18,6 +20,7 @@ const DEFAULT_SLIPPAGE_BPS = 50n;
  *
  * @param {import('starkzap').WalletInterface} wallet
  * @param {import('starkzap').Token} token
+ * @returns {Promise<import('starkzap').Amount>} Use `.toUnit()` / `.toFormatted()` in UI (not string coercion).
  */
 export async function assertSpendableBalance(wallet, token) {
   return wallet.balanceOf(token);
@@ -72,7 +75,7 @@ export function pickUsdcSupplyMarket(markets) {
  *
  * @param {import('starkzap').WalletInterface} wallet
  * @param {import('starkzap').Amount} amountUsdc
- * @param {import('starkzap').Address} [poolAddress]
+ * @param {import('starkzap').Address | string | undefined} [poolAddress] — plain hex strings are coerced with `fromAddress`
  */
 export async function depositUsdcToVesu(wallet, amountUsdc, poolAddress) {
   const lending = wallet.lending();
@@ -81,7 +84,12 @@ export async function depositUsdcToVesu(wallet, amountUsdc, poolAddress) {
   if (!market) {
     throw new Error('No USDC Vesu market returned for Sepolia');
   }
-  const pool = poolAddress ?? market.poolAddress;
+  const pool =
+    poolAddress == null
+      ? market.poolAddress
+      : typeof poolAddress === 'string'
+        ? fromAddress(poolAddress)
+        : poolAddress;
   const tx = await lending.deposit(
     {
       token: sepoliaTokens.USDC,

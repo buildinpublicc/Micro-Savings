@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@cartridge/controller": "^0.13.10",
+    "@fatsolutions/tongo-sdk": "^1.3.2",
     "starknet": "^9.4.2",
     "starkzap": "^2.0.0"
   }

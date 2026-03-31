@@ -217,6 +217,15 @@ body {
   stroke-width: 2.25;
 }
 
+.sidebar-nav__btn--danger {
+  color: #b42318;
+}
+
+.sidebar-nav__btn--danger:hover {
+  background: rgba(180, 35, 24, 0.08);
+  color: #981b1a;
+}
+
 @media (min-width: 900px) {
   .app-workspace {
     flex-direction: row;
@@ -373,6 +382,14 @@ body {
   margin: 0 auto;
 }
 
+.onboarding__cartridge-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 .legal-hint {
   margin-top: auto;
   padding-top: 24px;
@@ -437,13 +454,6 @@ body {
 
 .btn--outline:hover:not(:disabled) {
   border-color: var(--color-primary);
-}
-
-.btn--google {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 1.5px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
 }
 
 .btn--ghost {
@@ -1277,6 +1287,10 @@ body {
   stroke-width: 2.25;
 }
 
+.tab-bar__btn--danger {
+  color: #b42318;
+}
+
 .main-shell.stack-open .tab-bar {
   display: none;
 }
@@ -1458,8 +1472,7 @@ body {
   animation: spin 0.7s linear infinite;
 }
 
-.btn--outline.is-loading::after,
-.btn--google.is-loading::after {
+.btn--outline.is-loading::after {
   border-color: rgba(12, 61, 92, 0.2);
   border-top-color: var(--color-primary);
 }

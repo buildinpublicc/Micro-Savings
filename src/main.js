@@ -25,6 +25,7 @@ const modalBody = $('#modal-body');
 const toastEl = $('#toast');
 const loadingOverlay = $('#loading-overlay');
 const loadingText = $('#loading-text');
+const SESSION_STORAGE_KEY = 'micro-savings-session-v1';
 
 let currentTab = 'home';
 /** @type {'plan' | 'lock' | null} */
@@ -39,6 +40,42 @@ const TAB_TITLES = {
   history: 'Activity',
   settings: 'Profile',
 };
+
+function readSavedSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (typeof parsed.loggedIn !== 'boolean') return null;
+    if (parsed.profileLabel != null && typeof parsed.profileLabel !== 'string') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(profileLabel) {
+  try {
+    localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({
+        loggedIn: true,
+        profileLabel: profileLabel ?? null,
+      })
+    );
+  } catch {
+    // Ignore storage failures (private mode, quota, etc.).
+  }
+}
+
+function clearSession() {
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
 
 function setAriaHidden(el, hidden) {
   el.setAttribute('aria-hidden', hidden ? 'true' : 'false');
@@ -60,7 +97,26 @@ function enterApp(profileLabel) {
     if (nameEl) nameEl.textContent = profileLabel;
     if (emailEl) emailEl.textContent = 'Signed in with Cartridge';
   }
+  saveSession(profileLabel);
   showToast('You’re in. Let’s grow your savings.');
+}
+
+async function leaveApp() {
+  showLoading('Signing you out…');
+  try {
+    const { disconnectActiveWallet } = await import('./wallet/starkzap-connection.js');
+    await disconnectActiveWallet();
+  } finally {
+    hideLoading();
+  }
+
+  closeStack();
+  clearSession();
+  onboarding.classList.add('screen--active');
+  setAriaHidden(onboarding, false);
+  mainShell.classList.add('is-hidden');
+  mainShell.setAttribute('aria-hidden', 'true');
+  showToast('Logged out successfully.');
 }
 
 function getTabScreen(tab) {
@@ -227,17 +283,16 @@ document.body.addEventListener('click', async (e) => {
   const action = actionEl.dataset.action;
 
   switch (action) {
-    case 'login-google':
-    case 'login-email': {
+    case 'login-cartridge': {
       const ok = await openModal({
         title: 'Continue to your account?',
-        body: 'We’ll set things up securely. You can always change preferences later.',
+        body: 'You’ll sign in with Cartridge (your Starknet wallet). You can always change preferences later.',
         confirmText: 'Continue',
         cancelText: 'Go back',
       });
       if (!ok) break;
       try {
-        showLoading('Opening secure login…');
+        showLoading('Opening Cartridge…');
         const { connectCartridge, getWalletDisplayName } = await import(
           './wallet/starkzap-connection.js'
         );
@@ -391,6 +446,17 @@ document.body.addEventListener('click', async (e) => {
       break;
     }
 
+    case 'logout': {
+      const ok = await openModal({
+        title: 'Log out?',
+        body: 'You will be signed out of your Cartridge session on this device.',
+        confirmText: 'Log out',
+        cancelText: 'Stay signed in',
+      });
+      if (ok) await leaveApp();
+      break;
+    }
+
     case 'modal-close':
     case 'modal-cancel':
       closeModal(false);
@@ -419,3 +485,8 @@ modalRoot.addEventListener('click', (e) => {
 
 bindSwitches();
 bindPlanScreen();
+
+const savedSession = readSavedSession();
+if (savedSession?.loggedIn) {
+  enterApp(savedSession.profileLabel ?? undefined);
+}
