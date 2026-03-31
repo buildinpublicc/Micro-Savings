@@ -26,6 +26,17 @@ export function getActiveWallet() {
   return activeWallet;
 }
 
+/**
+ * @returns {import('starkzap').WalletInterface}
+ * @throws {Error} If the user is not connected (e.g. restored UI session without Cartridge).
+ */
+export function requireConnectedWallet() {
+  if (!activeWallet) {
+    throw new Error('Connect your account first (sign in with Cartridge from the welcome screen).');
+  }
+  return activeWallet;
+}
+
 export async function disconnectActiveWallet() {
   if (!activeWallet) return;
   try {

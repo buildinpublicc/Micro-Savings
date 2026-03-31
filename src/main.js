@@ -1,5 +1,13 @@
 import './styles.css';
 import { starknetSepolia } from './config/starknet.js';
+import { isSavingsPlanPayload } from './domain/savings-plan.js';
+import {
+  readDashboard,
+  updateDashboard,
+  computeLocalNextRunIso,
+} from './lib/dashboard-state.js';
+import { readConnectedWalletBalances } from './lib/wallet-balances.js';
+import { refreshHomeDashboard } from './ui/home-dashboard.js';
 
 if (import.meta.env.DEV) {
   import('./sdk/starkzap-client.js').then(({ getStarkZap }) => {
@@ -28,7 +36,7 @@ const loadingText = $('#loading-text');
 const SESSION_STORAGE_KEY = 'micro-savings-session-v1';
 
 let currentTab = 'home';
-/** @type {'plan' | 'lock' | null} */
+/** @type {'plan' | 'lock' | 'goal' | null} */
 let stackScreen = null;
 /** @type {((v: boolean) => void) | null} */
 let modalResolve = null;
@@ -49,24 +57,39 @@ function readSavedSession() {
     if (!parsed || typeof parsed !== 'object') return null;
     if (typeof parsed.loggedIn !== 'boolean') return null;
     if (parsed.profileLabel != null && typeof parsed.profileLabel !== 'string') return null;
-    return parsed;
+    const userId =
+      typeof parsed.userId === 'number' && Number.isInteger(parsed.userId) ? parsed.userId : null;
+    const externalRef =
+      typeof parsed.externalRef === 'string' && parsed.externalRef ? parsed.externalRef : null;
+    return { ...parsed, userId, externalRef };
   } catch {
     return null;
   }
 }
 
-function saveSession(profileLabel) {
+/**
+ * @param {string | undefined | null} profileLabel
+ * @param {number | null} [userId]
+ * @param {string | null} [externalRef]
+ */
+function saveSession(profileLabel, userId, externalRef) {
   try {
     localStorage.setItem(
       SESSION_STORAGE_KEY,
       JSON.stringify({
         loggedIn: true,
         profileLabel: profileLabel ?? null,
-      })
+        userId: userId ?? null,
+        externalRef: externalRef ?? null,
+      }),
     );
   } catch {
     // Ignore storage failures (private mode, quota, etc.).
   }
+}
+
+function getSessionUserId() {
+  return readSavedSession()?.userId ?? null;
 }
 
 function clearSession() {
@@ -83,8 +106,9 @@ function setAriaHidden(el, hidden) {
 
 /**
  * @param {string} [profileLabel] — Cartridge username or shortened address (no full address in UI).
+ * @param {{ userId?: number | null, externalRef?: string | null }} [backend]
  */
-function enterApp(profileLabel) {
+function enterApp(profileLabel, backend = {}) {
   onboarding.classList.remove('screen--active');
   mainShell.classList.remove('is-hidden');
   mainShell.setAttribute('aria-hidden', 'false');
@@ -97,7 +121,7 @@ function enterApp(profileLabel) {
     if (nameEl) nameEl.textContent = profileLabel;
     if (emailEl) emailEl.textContent = 'Signed in with Cartridge';
   }
-  saveSession(profileLabel);
+  saveSession(profileLabel, backend.userId ?? null, backend.externalRef ?? null);
   showToast('You’re in. Let’s grow your savings.');
 }
 
@@ -123,6 +147,27 @@ function getTabScreen(tab) {
   return $(`.tab-screen[data-tab="${tab}"]`);
 }
 
+async function refreshWalletBalances() {
+  const strkEl = $('#wallet-strk-balance');
+  const usdcEl = $('#wallet-usdc-balance');
+  if (!strkEl || !usdcEl) return;
+  strkEl.textContent = '…';
+  usdcEl.textContent = '…';
+  try {
+    const bal = await readConnectedWalletBalances();
+    if (!bal) {
+      strkEl.textContent = '—';
+      usdcEl.textContent = '—';
+      return;
+    }
+    strkEl.textContent = bal.strk.toFormatted();
+    usdcEl.textContent = bal.usdc.toFormatted();
+  } catch {
+    strkEl.textContent = '—';
+    usdcEl.textContent = '—';
+  }
+}
+
 function showTab(tab) {
   currentTab = tab;
   stackScreen = null;
@@ -141,6 +186,68 @@ function showTab(tab) {
   headerTitle.textContent = TAB_TITLES[tab] ?? 'Home';
   headerBack.classList.add('is-hidden');
   mainShell.classList.remove('stack-open');
+
+  if (tab === 'wallet') void refreshWalletBalances();
+  if (tab === 'home') void refreshHomeDashboard(getSessionUserId);
+}
+
+function syncPlanFormFromDashboard() {
+  const { activePlan } = readDashboard();
+  const amt = /** @type {HTMLInputElement | null} */ (document.getElementById('plan-amount'));
+  const dur = /** @type {HTMLSelectElement | null} */ (document.getElementById('plan-duration'));
+  const stable = document.getElementById('toggle-stablecoin');
+  const interest = document.getElementById('toggle-interest');
+  const chipRoot = document.querySelector('#screen-plan fieldset .chips');
+  if (!activePlan) {
+    if (amt) amt.value = '2000';
+    return;
+  }
+  if (amt) amt.value = String(activePlan.amount);
+  chipRoot?.querySelectorAll('.chip').forEach((c) => {
+    if (!c.classList.contains('chip--lock')) {
+      c.classList.toggle('is-active', c.dataset.freq === activePlan.frequency);
+    }
+  });
+  if (dur) {
+    const opts = dur.querySelectorAll('option');
+    for (const o of opts) {
+      if (o.textContent.trim() === activePlan.duration) {
+        dur.value = o.value;
+        break;
+      }
+    }
+  }
+  if (stable) stable.setAttribute('aria-checked', activePlan.autoConvert ? 'true' : 'false');
+  if (interest) interest.setAttribute('aria-checked', activePlan.earnYield ? 'true' : 'false');
+}
+
+function syncGoalFormFromDashboard() {
+  const { goal } = readDashboard();
+  const n = /** @type {HTMLInputElement | null} */ (document.getElementById('goal-name-input'));
+  const t = /** @type {HTMLInputElement | null} */ (document.getElementById('goal-target-input'));
+  if (n) n.value = goal.title;
+  if (t) t.value = String(goal.targetUsd);
+}
+
+function collectPlanPayloadFromForm() {
+  const amount = Number(document.getElementById('plan-amount')?.value);
+  const durationEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('plan-duration'));
+  const durationLabel =
+    durationEl?.selectedOptions[0]?.textContent?.trim() ?? '12 months';
+  const freqEl = document.querySelector(
+    '#screen-plan fieldset .chips .chip.is-active:not(.chip--lock)',
+  );
+  const frequency = freqEl?.dataset.freq;
+  const stableOn = document.getElementById('toggle-stablecoin')?.getAttribute('aria-checked') === 'true';
+  const interestOn = document.getElementById('toggle-interest')?.getAttribute('aria-checked') === 'true';
+  if (!frequency) return null;
+  return {
+    amount,
+    frequency: /** @type {'daily' | 'weekly' | 'monthly'} */ (frequency),
+    duration: durationLabel,
+    autoConvert: stableOn,
+    earnYield: interestOn,
+  };
 }
 
 function openStack(screenId) {
@@ -153,8 +260,15 @@ function openStack(screenId) {
   headerBack.classList.remove('is-hidden');
   mainShell.classList.add('stack-open');
 
-  if (screenId === 'plan') headerTitle.textContent = 'New savings plan';
+  if (screenId === 'plan') {
+    headerTitle.textContent = 'New savings plan';
+    syncPlanFormFromDashboard();
+  }
   if (screenId === 'lock') headerTitle.textContent = 'Lock savings';
+  if (screenId === 'goal') {
+    headerTitle.textContent = 'Savings goal';
+    syncGoalFormFromDashboard();
+  }
 }
 
 function closeStack() {
@@ -178,7 +292,7 @@ function closeStack() {
 function openModal(opts) {
   const { title, body, confirmText = 'Yes, continue', cancelText = 'Not now' } = opts;
   modalTitle.textContent = title;
-  modalBody.textContent = body;
+  if (modalBody) modalBody.textContent = body;
   const confirmBtn = $('[data-action="modal-confirm"]');
   const cancelBtn = $('[data-action="modal-cancel"]');
   confirmBtn.textContent = confirmText;
@@ -219,23 +333,6 @@ function showLoading(message = 'One moment…') {
 
 function hideLoading() {
   loadingOverlay.classList.add('is-hidden');
-}
-
-function simulateAsync(btn, message, doneMessage, ms = 1400, onDone) {
-  if (btn) {
-    btn.classList.add('is-loading');
-    btn.disabled = true;
-  }
-  showLoading(message);
-  window.setTimeout(() => {
-    hideLoading();
-    if (btn) {
-      btn.classList.remove('is-loading');
-      btn.disabled = false;
-    }
-    showToast(doneMessage);
-    onDone?.();
-  }, ms);
 }
 
 function bindSwitches() {
@@ -298,8 +395,22 @@ document.body.addEventListener('click', async (e) => {
         );
         await connectCartridge();
         hideLoading();
+        const { getActiveWallet } = await import('./wallet/starkzap-connection.js');
+        const w = getActiveWallet();
+        let userId = null;
+        let externalRef = null;
+        if (w) {
+          externalRef = String(w.address);
+          try {
+            const { ensureUser } = await import('./api/backend.js');
+            const row = await ensureUser(externalRef);
+            userId = row.id;
+          } catch {
+            // API optional — Home still works from local state
+          }
+        }
         const label = await getWalletDisplayName();
-        enterApp(label);
+        enterApp(label, { userId, externalRef });
       } catch (err) {
         hideLoading();
         const msg =
@@ -325,24 +436,41 @@ document.body.addEventListener('click', async (e) => {
 
     case 'add-money': {
       const ok = await openModal({
-        title: 'Add money?',
-        body: 'You’ll choose an amount and a funding source you already trust (card or bank).',
-        confirmText: 'Continue',
-        cancelText: 'Cancel',
+        title: 'Add funds (Sepolia)',
+        body:
+          'This build runs on Starknet Sepolia. Get STRK from a faucet, open the Wallet tab, then swap STRK → USDC. Your Home balance uses wallet USDC as cash.',
+        confirmText: 'Open Wallet',
+        cancelText: 'Close',
       });
-      if (ok) simulateAsync(null, 'Connecting safely…', 'Ready — pick an amount on the next step.');
+      if (ok) {
+        showTab('wallet');
+        void refreshWalletBalances();
+        void refreshHomeDashboard(getSessionUserId);
+      }
       break;
     }
 
     case 'withdraw': {
+      const { getActiveWallet } = await import('./wallet/starkzap-connection.js');
+      const w = getActiveWallet();
+      if (!w) {
+        showToast('Sign in with Cartridge to copy your Starknet address.');
+        break;
+      }
+      const addr = String(w.address);
       const ok = await openModal({
-        title: 'Withdraw to your bank?',
-        body: 'Money usually arrives within 1 business day. Small limits may apply for your safety.',
-        confirmText: 'Continue',
-        cancelText: 'Cancel',
+        title: 'Send or withdraw',
+        body: `${addr}\n\nUse this address with any Starknet Sepolia wallet, bridge, or exchange that supports withdrawals to your custody.`,
+        confirmText: 'Copy address',
+        cancelText: 'Close',
       });
-      if (ok) {
-        simulateAsync(null, 'Preparing transfer…', 'Withdrawal submitted. We’ll notify you when it’s sent.');
+      if (ok && navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(addr);
+          showToast('Address copied to clipboard.');
+        } catch {
+          showToast('Could not copy — select the address in the dialog.');
+        }
       }
       break;
     }
@@ -356,26 +484,110 @@ document.body.addEventListener('click', async (e) => {
       break;
 
     case 'start-saving': {
+      const payload = collectPlanPayloadFromForm();
+      if (!payload || !isSavingsPlanPayload(payload)) {
+        showToast('Choose a valid amount, schedule, and options.');
+        break;
+      }
       const ok = await openModal({
         title: 'Start this plan?',
-        body: 'We’ll save on your schedule. You can pause or edit anytime from Home.',
+        body: 'We’ll save on your schedule. You can pause or edit anytime from Home. If the API is running, the plan syncs to your account.',
         confirmText: 'Start Saving',
         cancelText: 'Review again',
       });
-      if (ok) {
-        simulateAsync(actionEl, 'Setting up your plan…', 'Nice — your plan is live.', 1400, closeStack);
+      if (!ok) break;
+      showLoading('Saving your plan…');
+      const session = readSavedSession();
+      const localNext = computeLocalNextRunIso(payload.frequency);
+      let activePlanState = { ...payload, localNextRunAt: localNext };
+      if (session?.userId != null) {
+        try {
+          const { createPlan } = await import('./api/backend.js');
+          const row = await createPlan(session.userId, payload);
+          activePlanState = {
+            ...payload,
+            localNextRunAt: String(row.next_run_at),
+            serverPlanId: row.id,
+          };
+        } catch {
+          showToast('Saved on this device only — API unreachable.', 4500);
+        }
       }
+      hideLoading();
+      updateDashboard((d) => ({
+        ...d,
+        activePlan: activePlanState,
+        autoSaveEnabled: true,
+      }));
+      closeStack();
+      void refreshHomeDashboard(getSessionUserId);
+      showToast('Plan is live.');
+      break;
+    }
+
+    case 'edit-goal':
+      openStack('goal');
+      break;
+
+    case 'save-goal': {
+      const title = document.getElementById('goal-name-input')?.value?.trim() ?? '';
+      const target = Number(
+        /** @type {HTMLInputElement | null} */ (document.getElementById('goal-target-input'))?.value,
+      );
+      if (!title || !Number.isFinite(target) || target < 1) {
+        showToast('Enter a goal name and a target of at least 1.');
+        break;
+      }
+      updateDashboard((d) => ({ ...d, goal: { title, targetUsd: target } }));
+      closeStack();
+      void refreshHomeDashboard(getSessionUserId);
+      showToast('Goal saved.');
+      break;
+    }
+
+    case 'toggle-autosave': {
+      const wasOn = readDashboard().autoSaveEnabled;
+      if (!readDashboard().activePlan) {
+        showToast('Create a savings plan first.');
+        break;
+      }
+      updateDashboard((d) => ({ ...d, autoSaveEnabled: !d.autoSaveEnabled }));
+      void refreshHomeDashboard(getSessionUserId);
+      showToast(wasOn ? 'Auto-save paused on this device.' : 'Auto-save on.');
       break;
     }
 
     case 'convert-stable': {
+      const amountInput = /** @type {HTMLInputElement | null} */ (document.getElementById('swap-strk-amount'));
+      const raw = amountInput?.value?.trim() ?? '';
+      if (!raw) {
+        showToast('Enter how much STRK to swap (e.g. 0.5).');
+        break;
+      }
       const ok = await openModal({
-        title: 'Switch to stable balance?',
-        body: 'We’ll move your chosen amount into a steadier form of value. This usually takes a few minutes.',
-        confirmText: 'Convert',
+        title: 'Swap STRK to USDC?',
+        body: 'This uses AVNU on Starknet Sepolia. Approve the transaction in Cartridge when prompted. Gas may be sponsored if your session allows it.',
+        confirmText: 'Swap',
         cancelText: 'Cancel',
       });
-      if (ok) simulateAsync(actionEl, 'Converting…', 'Done — your stable balance is updated.');
+      if (!ok) break;
+      try {
+        showLoading('Preparing swap…');
+        const { runConnectedSwapStrkToUsdc } = await import('./flows/onchain-savings.js');
+        const tx = await runConnectedSwapStrkToUsdc(raw);
+        hideLoading();
+        showToast('Swap confirmed. Updating balances…');
+        void refreshWalletBalances();
+        void refreshHomeDashboard(getSessionUserId);
+        if (tx.explorerUrl) {
+          window.open(tx.explorerUrl, '_blank', 'noopener,noreferrer');
+        }
+      } catch (err) {
+        hideLoading();
+        const msg =
+          err instanceof Error ? err.message : 'Swap failed. Check balance, network, and try again.';
+        showToast(msg, 6000);
+      }
       break;
     }
 
@@ -405,12 +617,17 @@ document.body.addEventListener('click', async (e) => {
       const days = $('.chip--lock.is-active')?.dataset.lock ?? '30';
       const ok = await openModal({
         title: `Lock for ${days} days?`,
-        body: 'During this time, the locked amount won’t be available to withdraw. Everything else stays flexible.',
+        body: 'During this time, the locked amount won’t be available to withdraw. Everything else stays flexible. (Demo: reminder only on Home.)',
         confirmText: 'Lock now',
         cancelText: 'Cancel',
       });
       if (ok) {
-        simulateAsync(actionEl, 'Locking your savings…', `Locked for ${days} days. Growth rate updated.`, 1400, closeStack);
+        const daysNum = Number(days) || 30;
+        const lockedUntil = new Date(Date.now() + daysNum * 86_400_000).toISOString();
+        updateDashboard((d) => ({ ...d, lock: { days, lockedUntil } }));
+        closeStack();
+        void refreshHomeDashboard(getSessionUserId);
+        showToast(`Locked for ${days} days — we’ll highlight this on Home.`);
       }
       break;
     }
@@ -488,5 +705,8 @@ bindPlanScreen();
 
 const savedSession = readSavedSession();
 if (savedSession?.loggedIn) {
-  enterApp(savedSession.profileLabel ?? undefined);
+  enterApp(savedSession.profileLabel ?? undefined, {
+    userId: savedSession.userId,
+    externalRef: savedSession.externalRef,
+  });
 }
