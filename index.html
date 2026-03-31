@@ -107,7 +107,7 @@
               </div>
               <div class="action-row">
                 <button type="button" class="btn btn--primary btn--grow" data-action="add-money">+ Add Money</button>
-                <button type="button" class="btn btn--outline btn--grow" data-action="withdraw">Withdraw</button>
+                <button type="button" class="btn btn--outline btn--grow" data-action="withdraw">Send</button>
               </div>
 
               <div class="card card--accent">
@@ -238,6 +238,44 @@
                 <input type="number" class="field__input" id="goal-target-input" min="1" step="100" inputmode="decimal" />
               </label>
               <button type="button" class="btn btn--primary btn--block btn--bottom" data-action="save-goal">Save goal</button>
+            </section>
+
+            <!-- Send to another Starknet address -->
+            <section id="screen-send" class="screen stack-screen" aria-label="Send tokens">
+              <p class="section-lead">
+                Send STRK or USDC to someone else’s Starknet address on Sepolia. Transfers can’t be undone—verify the address.
+              </p>
+              <label class="field">
+                <span class="field__label">Recipient address</span>
+                <input
+                  type="text"
+                  class="field__input"
+                  id="send-recipient"
+                  placeholder="0x…"
+                  autocomplete="off"
+                  spellcheck="false"
+                  autocapitalize="off"
+                />
+              </label>
+              <label class="field">
+                <span class="field__label">Amount</span>
+                <input
+                  type="text"
+                  class="field__input"
+                  id="send-amount"
+                  placeholder="e.g. 5"
+                  inputmode="decimal"
+                  autocomplete="off"
+                />
+              </label>
+              <fieldset class="field">
+                <legend class="field__label">Token</legend>
+                <div class="chips" role="group" id="send-token-chips">
+                  <button type="button" class="chip is-active" data-send-token="USDC">USDC</button>
+                  <button type="button" class="chip" data-send-token="STRK">STRK</button>
+                </div>
+              </fieldset>
+              <button type="button" class="btn btn--primary btn--block btn--bottom" data-action="submit-send">Review &amp; send</button>
             </section>
 
             <!-- Wallet -->

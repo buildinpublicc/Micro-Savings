@@ -36,7 +36,7 @@ const loadingText = $('#loading-text');
 const SESSION_STORAGE_KEY = 'micro-savings-session-v1';
 
 let currentTab = 'home';
-/** @type {'plan' | 'lock' | 'goal' | null} */
+/** @type {'plan' | 'lock' | 'goal' | 'send' | null} */
 let stackScreen = null;
 /** @type {((v: boolean) => void) | null} */
 let modalResolve = null;
@@ -269,6 +269,7 @@ function openStack(screenId) {
     headerTitle.textContent = 'Savings goal';
     syncGoalFormFromDashboard();
   }
+  if (screenId === 'send') headerTitle.textContent = 'Send to address';
 }
 
 function closeStack() {
@@ -375,6 +376,26 @@ function bindSwitches() {
       sw.setAttribute('aria-checked', on ? 'true' : 'false');
     });
   });
+}
+
+function bindSendTokenChips() {
+  const root = document.getElementById('send-token-chips');
+  if (!root) return;
+  root.querySelectorAll('.chip').forEach((c) => {
+    c.addEventListener('click', () => {
+      root.querySelectorAll('.chip').forEach((x) => x.classList.remove('is-active'));
+      c.classList.add('is-active');
+    });
+  });
+}
+
+async function openSendStackIfConnected() {
+  const { getActiveWallet } = await import('./wallet/starkzap-connection.js');
+  if (!getActiveWallet()) {
+    showToast('Sign in with Cartridge to send tokens.');
+    return;
+  }
+  openStack('send');
 }
 
 function bindPlanScreen() {
@@ -484,10 +505,7 @@ document.body.addEventListener('click', async (e) => {
     }
 
     case 'withdraw':
-      await openWalletAddressModal(
-        'Send or withdraw',
-        'Use this address with any Starknet Sepolia wallet, bridge, or exchange that sends funds to your custody.',
-      );
+      await openSendStackIfConnected();
       break;
 
     case 'open-plan':
@@ -606,14 +624,64 @@ document.body.addEventListener('click', async (e) => {
       break;
     }
 
-    case 'send-money': {
+    case 'send-money':
+      await openSendStackIfConnected();
+      break;
+
+    case 'submit-send': {
+      const recipient =
+        /** @type {HTMLInputElement | null} */ (document.getElementById('send-recipient'))?.value?.trim() ??
+        '';
+      const amountStr =
+        /** @type {HTMLInputElement | null} */ (document.getElementById('send-amount'))?.value?.trim() ?? '';
+      const tokenEl = document.querySelector('#send-token-chips .chip.is-active');
+      const rawTok = tokenEl?.getAttribute('data-send-token');
+      const tokenKey = rawTok === 'STRK' ? 'STRK' : 'USDC';
+      if (!recipient.startsWith('0x') || recipient.length < 10) {
+        showToast('Enter a full Starknet address starting with 0x.');
+        break;
+      }
+      if (!amountStr) {
+        showToast('Enter how much to send.');
+        break;
+      }
+      const { requireConnectedWallet } = await import('./wallet/starkzap-connection.js');
+      let wallet;
+      try {
+        wallet = requireConnectedWallet();
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Connect your wallet first.');
+        break;
+      }
+      if (String(wallet.address).toLowerCase() === recipient.toLowerCase()) {
+        showToast('That’s your own wallet address. Enter the recipient’s address.');
+        break;
+      }
       const ok = await openModal({
-        title: 'Send money?',
-        body: 'You’ll pick a saved contact or enter details we can verify for you.',
-        confirmText: 'Continue',
-        cancelText: 'Cancel',
+        title: 'Confirm send',
+        body: `Send ${amountStr} ${tokenKey} to:\n${recipient}\n\nYou’ll approve this in Cartridge. Fees may be sponsored if your session allows.`,
+        confirmText: 'Send',
+        cancelText: 'Back',
       });
-      if (ok) showToast('Opening send flow…');
+      if (!ok) break;
+      try {
+        showLoading('Submitting transfer…');
+        const { transferSepoliaToken } = await import('./flows/sepolia-transfer.js');
+        const tx = await transferSepoliaToken(wallet, tokenKey, recipient, amountStr);
+        hideLoading();
+        showToast('Transfer confirmed.');
+        closeStack();
+        void refreshWalletBalances();
+        void refreshHomeDashboard(getSessionUserId);
+        if (tx.explorerUrl) {
+          window.open(tx.explorerUrl, '_blank', 'noopener,noreferrer');
+        }
+      } catch (err) {
+        hideLoading();
+        const msg =
+          err instanceof Error ? err.message : 'Transfer failed. Check balance, address, and try again.';
+        showToast(msg, 6500);
+      }
       break;
     }
 
@@ -713,6 +781,7 @@ modalRoot.addEventListener('click', (e) => {
 
 bindSwitches();
 bindPlanScreen();
+bindSendTokenChips();
 
 const savedSession = readSavedSession();
 if (savedSession?.loggedIn) {
