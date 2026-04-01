@@ -9,14 +9,22 @@ export { requireConnectedWallet };
 export {
   assertSpendableBalance,
   quoteStrkToUsdc,
+  quoteUsdcToStrk,
   swapStrkToUsdc,
+  swapUsdcToStrk,
   depositUsdcToVesu,
+  withdrawUsdcFromVesu,
   saveSwapDepositOneTick,
+  withdrawSavingsOneTick,
   pickUsdcSupplyMarket,
   executeRawCalls,
 } from './sepolia-save-swap-deposit.js';
 
-export { runConnectedSaveSwapDeposit, runConnectedSwapStrkToUsdc } from './sepolia-pipeline.js';
+export {
+  runConnectedSaveSwapDeposit,
+  runConnectedSwapStrkToUsdc,
+  runConnectedWithdrawFromVesu,
+} from './sepolia-pipeline.js';
 
 export function lendingClient() {
   return requireConnectedWallet().lending();

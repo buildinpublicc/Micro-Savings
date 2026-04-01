@@ -40,6 +40,19 @@ export async function quoteStrkToUsdc(wallet, amountIn) {
 }
 
 /**
+ * @param {import('starkzap').WalletInterface} wallet
+ * @param {import('starkzap').Amount} amountIn — e.g. Amount.parse("25", sepoliaTokens.USDC)
+ */
+export async function quoteUsdcToStrk(wallet, amountIn) {
+  return wallet.getQuote({
+    tokenIn: sepoliaTokens.USDC,
+    tokenOut: sepoliaTokens.STRK,
+    amountIn,
+    slippageBps: DEFAULT_SLIPPAGE_BPS,
+  });
+}
+
+/**
  * AVNU swap on Sepolia (`provider: 'avnu'`).
  *
  * @param {import('starkzap').WalletInterface} wallet
@@ -50,6 +63,27 @@ export async function swapStrkToUsdc(wallet, amountIn) {
     {
       tokenIn: sepoliaTokens.STRK,
       tokenOut: sepoliaTokens.USDC,
+      amountIn,
+      provider: 'avnu',
+      slippageBps: DEFAULT_SLIPPAGE_BPS,
+    },
+    { feeMode: 'sponsored' },
+  );
+  await tx.wait();
+  return tx;
+}
+
+/**
+ * AVNU swap on Sepolia (`provider: 'avnu'`).
+ *
+ * @param {import('starkzap').WalletInterface} wallet
+ * @param {import('starkzap').Amount} amountIn
+ */
+export async function swapUsdcToStrk(wallet, amountIn) {
+  const tx = await wallet.swap(
+    {
+      tokenIn: sepoliaTokens.USDC,
+      tokenOut: sepoliaTokens.STRK,
       amountIn,
       provider: 'avnu',
       slippageBps: DEFAULT_SLIPPAGE_BPS,
@@ -104,6 +138,41 @@ export async function depositUsdcToVesu(wallet, amountUsdc, poolAddress) {
 }
 
 /**
+ * Withdraw supplied USDC from Vesu back into wallet balance.
+ *
+ * @param {import('starkzap').WalletInterface} wallet
+ * @param {import('starkzap').Amount} amountUsdc
+ * @param {import('starkzap').Address | string | undefined} [poolAddress]
+ */
+export async function withdrawUsdcFromVesu(wallet, amountUsdc, poolAddress) {
+  const lending = wallet.lending();
+  const markets = await lending.getMarkets({ provider: 'vesu' });
+  const market = pickUsdcSupplyMarket(markets);
+  if (!market) {
+    throw new Error('No USDC Vesu market returned for Sepolia');
+  }
+  const pool =
+    poolAddress == null
+      ? market.poolAddress
+      : typeof poolAddress === 'string'
+        ? fromAddress(poolAddress)
+        : poolAddress;
+
+  const tx = await lending.withdraw(
+    {
+      token: sepoliaTokens.USDC,
+      amount: amountUsdc,
+      poolAddress: pool,
+      provider: 'vesu',
+      receiver: wallet.address,
+    },
+    { feeMode: 'sponsored' },
+  );
+  await tx.wait();
+  return tx;
+}
+
+/**
  * One scheduler tick: quote → swap STRK→USDC → deposit USDC to Vesu.
  * Uses 99% of quoted USDC out as a safety margin vs execution slippage.
  *
@@ -122,6 +191,37 @@ export async function saveSwapDepositOneTick(wallet, saveAmountStrk) {
   const safeOut = (quote.amountOutBase * 99n) / 100n;
   const depositAmount = Amount.fromRaw(safeOut, sepoliaTokens.USDC);
   await depositUsdcToVesu(wallet, depositAmount);
+}
+
+/**
+ * Withdraw from Vesu and optionally convert to STRK before finishing in wallet balance.
+ *
+ * @param {import('starkzap').WalletInterface} wallet
+ * @param {string | import('starkzap').Amount} amountUsdc
+ * @param {{ convertToStrk?: boolean }} [opts]
+ */
+export async function withdrawSavingsOneTick(wallet, amountUsdc, opts = {}) {
+  const requested =
+    typeof amountUsdc === 'string'
+      ? Amount.parse(amountUsdc, sepoliaTokens.USDC)
+      : amountUsdc;
+
+  const usdcBefore = await wallet.balanceOf(sepoliaTokens.USDC);
+  const withdrawTx = await withdrawUsdcFromVesu(wallet, requested);
+
+  if (!opts.convertToStrk) {
+    return { withdrawTx, swapTx: null };
+  }
+
+  const usdcAfter = await wallet.balanceOf(sepoliaTokens.USDC);
+  const delta = usdcAfter.toBase() - usdcBefore.toBase();
+  if (delta <= 0n) {
+    throw new Error('Withdraw succeeded but no USDC became available to swap. Try again in a moment.');
+  }
+
+  const swapAmount = Amount.fromRaw(delta, sepoliaTokens.USDC);
+  const swapTx = await swapUsdcToStrk(wallet, swapAmount);
+  return { withdrawTx, swapTx };
 }
 
 /**

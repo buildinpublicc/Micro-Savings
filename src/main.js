@@ -40,7 +40,7 @@ const loadingText = $('#loading-text');
 const SESSION_STORAGE_KEY = 'micro-savings-session-v1';
 
 let currentTab = 'home';
-/** @type {'plan' | 'lock' | 'goal' | 'send' | null} */
+/** @type {'plan' | 'lock' | 'goal' | 'send' | 'withdraw' | null} */
 let stackScreen = null;
 /** @type {((v: boolean) => void) | null} */
 let modalResolve = null;
@@ -287,6 +287,7 @@ function openStack(screenId) {
     syncGoalFormFromDashboard();
   }
   if (screenId === 'send') headerTitle.textContent = 'Send to address';
+  if (screenId === 'withdraw') headerTitle.textContent = 'Withdraw savings';
 }
 
 function closeStack() {
@@ -415,8 +416,28 @@ async function openSendStackIfConnected() {
   openStack('send');
 }
 
+function bindWithdrawOutputChips() {
+  const root = document.getElementById("withdraw-output-chips");
+  if (!root) return;
+  root.querySelectorAll(".chip").forEach((c) => {
+    c.addEventListener("click", () => {
+      root.querySelectorAll(".chip").forEach((x) => x.classList.remove("is-active"));
+      c.classList.add("is-active");
+    });
+  });
+}
+
+async function openWithdrawStackIfConnected() {
+  const { getActiveWallet } = await import("./wallet/starkzap-connection.js");
+  if (!getActiveWallet()) {
+    showToast("Sign in with Cartridge to withdraw from Vesu.");
+    return;
+  }
+  openStack("withdraw");
+}
+
 function bindPlanScreen() {
-  $$('.chips .chip:not(.chip--lock)').forEach((c) => {
+  $$('#screen-plan .chips .chip:not(.chip--lock)').forEach((c) => {
     c.addEventListener('click', () => {
       c.parentElement?.querySelectorAll('.chip').forEach((x) => {
         if (!x.classList.contains('chip--lock')) x.classList.remove('is-active');
@@ -512,7 +533,7 @@ document.body.addEventListener('click', async (e) => {
     }
 
     case 'withdraw':
-      await openSendStackIfConnected();
+      await openWithdrawStackIfConnected();
       break;
 
     case 'open-plan':
@@ -644,6 +665,66 @@ document.body.addEventListener('click', async (e) => {
         const msg =
           err instanceof Error ? err.message : 'Swap failed. Check balance, network, and try again.';
         showToast(msg, 6000);
+      }
+      break;
+    }
+
+    case 'submit-withdraw': {
+      const amountStr =
+        /** @type {HTMLInputElement | null} */ (document.getElementById('withdraw-amount'))?.value?.trim() ?? '';
+      if (!amountStr) {
+        showToast('Enter how much USDC to withdraw from Vesu.');
+        break;
+      }
+      const outputEl = document.querySelector('#withdraw-output-chips .chip.is-active');
+      const output = outputEl?.getAttribute('data-withdraw-output') === 'STRK' ? 'STRK' : 'USDC';
+
+      const ok = await openModal({
+        title: 'Confirm withdraw',
+        body:
+          output === 'STRK'
+            ? `Withdraw ${amountStr} USDC from Vesu, then convert to STRK via AVNU and return to your wallet.`
+            : `Withdraw ${amountStr} USDC from Vesu back to your wallet balance.`,
+        confirmText: 'Withdraw',
+        cancelText: 'Back',
+      });
+      if (!ok) break;
+      try {
+        showLoading('Withdrawing from Vesu…');
+        const { runConnectedWithdrawFromVesu } = await import('./flows/onchain-savings.js');
+        const result = await runConnectedWithdrawFromVesu(amountStr, {
+          convertToStrk: output === 'STRK',
+        });
+        hideLoading();
+        closeStack();
+        void refreshWalletBalances();
+        void refreshHomeDashboard(getSessionUserId);
+        void refreshGrowthTab(getSessionUserId);
+
+        appendLocalActivity({
+          icon: 'in',
+          title: output === 'STRK' ? 'Withdrew from Vesu + swapped to STRK' : 'Withdrew from Vesu',
+          subtitle: formatActivityWhenLine(),
+          amountDisplay: `+${amountStr} ${output === 'STRK' ? 'STRK' : 'USDC'}`,
+          amountVariant: 'pos',
+        });
+        void refreshActivityTab(getSessionUserId);
+
+        if (result.swapTx?.explorerUrl) {
+          window.open(result.swapTx.explorerUrl, '_blank', 'noopener,noreferrer');
+        } else if (result.withdrawTx?.explorerUrl) {
+          window.open(result.withdrawTx.explorerUrl, '_blank', 'noopener,noreferrer');
+        }
+        showToast(
+          output === 'STRK'
+            ? 'Withdraw + convert completed. Funds are now in your wallet.'
+            : 'Withdraw completed. Funds are now in your wallet.',
+        );
+      } catch (err) {
+        hideLoading();
+        const msg =
+          err instanceof Error ? err.message : 'Withdraw failed. Check Vesu position, amount, and try again.';
+        showToast(msg, 7000);
       }
       break;
     }
@@ -823,6 +904,7 @@ modalRoot.addEventListener('click', (e) => {
 bindSwitches();
 bindPlanScreen();
 bindSendTokenChips();
+bindWithdrawOutputChips();
 
 const savedSession = readSavedSession();
 if (savedSession?.loggedIn) {

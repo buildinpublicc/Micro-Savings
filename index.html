@@ -107,7 +107,7 @@
               </div>
               <div class="action-row">
                 <button type="button" class="btn btn--primary btn--grow" data-action="add-money">+ Add Money</button>
-                <button type="button" class="btn btn--outline btn--grow" data-action="withdraw">Send</button>
+                <button type="button" class="btn btn--outline btn--grow" data-action="withdraw">Withdraw</button>
               </div>
 
               <div class="card card--accent">
@@ -272,6 +272,32 @@
                 </div>
               </fieldset>
               <button type="button" class="btn btn--primary btn--block btn--bottom" data-action="submit-send">Review &amp; send</button>
+            </section>
+
+            <!-- Withdraw savings from Vesu -->
+            <section id="screen-withdraw" class="screen stack-screen" aria-label="Withdraw savings">
+              <p class="section-lead">
+                Withdraw your savings from Vesu to your wallet. Optionally convert withdrawn USDC back to STRK via AVNU.
+              </p>
+              <label class="field">
+                <span class="field__label">Amount (USDC)</span>
+                <input
+                  type="text"
+                  class="field__input"
+                  id="withdraw-amount"
+                  placeholder="e.g. 25"
+                  inputmode="decimal"
+                  autocomplete="off"
+                />
+              </label>
+              <fieldset class="field">
+                <legend class="field__label">After withdraw</legend>
+                <div class="chips" role="group" id="withdraw-output-chips">
+                  <button type="button" class="chip is-active" data-withdraw-output="USDC">Keep as USDC</button>
+                  <button type="button" class="chip" data-withdraw-output="STRK">Convert to STRK (AVNU)</button>
+                </div>
+              </fieldset>
+              <button type="button" class="btn btn--primary btn--block btn--bottom" data-action="submit-withdraw">Withdraw now</button>
             </section>
 
             <!-- Wallet -->
